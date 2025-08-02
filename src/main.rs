@@ -56,7 +56,7 @@ fn commit_to_x(x: &Fr, h: &G1Projective) -> Commitment {
     let mut rng = thread_rng();
     let r = Fr::rand(&mut rng);
     let g = G1Affine::new_unchecked(G1_GENERATOR_X, G1_GENERATOR_Y).into_group(); // assumes G is public
-    let commitment = g.mul(x) + h.mul(r); // g^x * h^r (g, h in G1)
+    let commitment = g.mul(x) + h.mul(r); // g^x * h^r (g, h in G1) <x is the messae, r for the randomess>
 
     Commitment {
         value: commitment,
@@ -107,9 +107,16 @@ impl Accumulator {
     }
     pub fn gen_wit(&mut self, sk: &SecretKey<Fr>, credential: Credential, h: &G1Projective) 
     -> Witness {
-            // (a) Sample x ∈ D
+            // (a) Sample x ∈ D / sk
             let mut rng = thread_rng();
-            let x = Fr::rand(&mut rng); // or BigUint then convert to Fr
+            let x = loop {
+                let candidate = Fr::rand(&mut rng);
+                let sum = candidate + sk.0;
+                if !sum.0.is_zero() {
+                    break candidate;
+                }
+                // else continue looping
+            };
 
             // (b) Commit to x
             let commitment = commit_to_x(&x, h);
