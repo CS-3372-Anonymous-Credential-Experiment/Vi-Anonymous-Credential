@@ -1,0 +1,21 @@
+[package]
+name = "BMGen"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+num-bigint = { version = "0.4", features = ["rand"] }
+num-traits = "0.2"
+rand = "0.8"
+
+# Arkworks - all aligned to v0.4
+ark-ec = "0.4"
+ark-ff = "0.4"
+ark-std = "0.4"
+ark-bls12-381 = "0.4"
+ark-serialize= "0.4"
+
+# BBS+ crate compatible with arkworks 0.4
+bbs_plus = "0.24.0"
+commitment = "0.2.3"
+sha2 = "0.10"  # for randomization
