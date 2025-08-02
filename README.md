@@ -8,15 +8,28 @@ The accumulator logic is currently being updated based on the model proposed by 
 
 ⸻
 
-🔧 Project Components
-	•	Accumulator
-Represents the pairing-based accumulator structure. Includes a simple main function for testing and demonstration purposes.
-	•	Credential
-Defines a credential object, which includes a BBS+ signature over a list of attribute values (messages) issued by the issuer.
-	•	Commitment
-Implements the logic for hiding sensitive information using the Pedersen commitment scheme.
-	•	Witness
-Holds the values that a user (holder) retains and uses to generate zero-knowledge proofs (ZKPs) of valid credential ownership and revocation status.
+## 🔧 Project Components
+
+### 🧩 Accumulator  
+Represents the core bilinear pairing-based accumulator structure.  
+Includes logic for initializing, updating, and testing accumulator behavior via a simple `main` function.
+
+### 📜 Credential  
+Defines a credential that includes:  
+- A BBS+ signature over a list of attribute values (messages).  
+- The issuer's public key.  
+This object models the credential held by the user.
+
+### 🔐 Commitment  
+Implements Pedersen-style commitments to hide sensitive message values.  
+Used during zero-knowledge proof generation to ensure privacy.
+
+### 🧾 Witness  
+Contains the data a credential holder maintains to prove non-revocation:  
+- A private scalar `x`  
+- A Pedersen commitment `c_x`  
+- A trapdoor witness `w_x_t`  
+- The credential's BBS+ signature  
 
 ⸻
 
