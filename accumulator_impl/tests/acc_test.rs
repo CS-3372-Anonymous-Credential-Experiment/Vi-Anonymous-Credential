@@ -11,7 +11,7 @@ mod tests {
     #[test]
     fn test_accumulator_operations() {
         let mut rng = thread_rng();
-        let acc = ECAccumulator::setup();
+        let acc = ECAccumulator::new();
 
         // Generate a witness for an element x
         let x = Scalar::random(&mut rng);
@@ -47,7 +47,7 @@ mod tests {
     #[test]
     fn test_zkp_generation_and_verification() {
         let mut rng = thread_rng();
-        let acc = ECAccumulator::setup();
+        let acc = ECAccumulator::new();
 
         // Generate a witness for an element x
         let x = Scalar::random(&mut rng);
@@ -142,7 +142,7 @@ mod tests {
     #[test]
     fn test_zkp_with_deleted_element() {
         let mut rng = thread_rng();
-        let acc = ECAccumulator::setup();
+        let acc = ECAccumulator::new();
 
         // Generate a witness for an element x
         let x = Scalar::random(&mut rng);

@@ -1,81 +1,52 @@
-use bls12_381::{G1Projective, G2Projective, Scalar, pairing, Gt};
-use ff::Field;
-use group::{Group, Curve};
+use ark_bls12_381::{G1Projective, Fr};
+use ark_ff::PrimeField;
+use ark_ff::Field;
 use rand::thread_rng;
+use num_bigint::{BigUint, RandBigInt};
+use bbs_plus::prelude::SecretKey;
+use std::ops::Mul;
+
+
 
 pub struct ECAccumulator {
-    pub sk: Scalar,
-    pub j: G2Projective,
-    pub alpha: G1Projective,
-    pub g1: G1Projective,
-    pub g2: G2Projective,
-    pub g: G1Projective,
-    pub h: G1Projective,
-    pub k: G1Projective,
-    pub z: G1Projective,
-    pub e_z_g2: Gt,
-    pub e_z_j: Gt,
+    pub alpha: G1Projective, // the accumulated value
+    pub deltas: Vec<Fr> // List of revoked x (revoked credential)
 }
 
 impl ECAccumulator {
-    pub fn setup() -> Self {
+    pub fn new(g1: &G1Projective) -> Self {
+        let q = BigUint::from(Fr::MODULUS);
         let mut rng = thread_rng();
-        let sk = Scalar::random(&mut rng);
-        let g1 = G1Projective::generator();
-        let g2 = G2Projective::generator();
-        let j = g2 * sk;
-        let u0 = Scalar::random(&mut rng);
-        let alpha = g1 * u0;
-        let g = G1Projective::random(&mut rng);
-        let h = G1Projective::random(&mut rng);
-        let k = G1Projective::random(&mut rng);
-        let z = G1Projective::random(&mut rng);
-        let e_z_g2 = pairing(&z.to_affine(), &g2.to_affine());
-        let e_z_j = pairing(&z.to_affine(), &j.to_affine());
+        let u_0 = rng.gen_biguint_below(&q);
+        let u_0_fr = Fr::from_le_bytes_mod_order(&u_0.to_bytes_le());
 
-        ECAccumulator {
-            sk,
-            j,
-            alpha,
-            g1,
-            g2,
-            g,
-            h,
-            k,
-            z,
-            e_z_g2,
-            e_z_j,
-        }
+        // Multiply directly on projective point (preferred)
+        let alpha_0 = *g1 * u_0_fr;
+
+        let deltas = Vec::new();
+
+        ECAccumulator { alpha: alpha_0, deltas }
     }
 
-    pub fn gen_witness(&self, x: Scalar) -> G1Projective {
-        let x_sk_inv = (x + self.sk).invert().expect("x + sk invertible");
-        self.alpha * x_sk_inv
+        
+    pub fn update_acc(&mut self, x: &Fr, sk: &SecretKey<Fr>) {
+        // Compute inverse as raw field element (Fp)
+        let sum = *x + sk.0;
+        let inv = sum.inverse().unwrap();        
+        // Convert raw field element into Fr
+
+        self.deltas.push(*x);
+        self.alpha = self.alpha.mul(inv);
+    }
+    
+    pub fn gen_witness(&self, x: &Fr, sk: SecretKey<Fr>) -> G1Projective {
+        let sum = *x + sk.0;
+        let inv = sum.inverse().unwrap();
+        self.alpha.mul(inv)
     }
 
-    pub fn del(&self, x: Scalar) -> (G1Projective, Scalar) {
-        let delta = x + self.sk;
-        let inv = delta.invert().expect("x + sk invertible");
-        let new_alpha = self.alpha * inv;
-        (new_alpha, delta)
+    pub fn get_alpha(&self) -> &G1Projective {
+        &self.alpha
     }
-
-    pub fn verify_witness(&self, x: Scalar, witness: G1Projective) -> bool {
-        let lhs = pairing(&self.alpha.to_affine(), &self.g2.to_affine());
-        let g2xj = self.g2 * x + self.j;
-        let rhs = pairing(&witness.to_affine(), &g2xj.to_affine());
-        lhs == rhs
-    }
-
-    pub fn update_witness(
-        &self,
-        old_witness: G1Projective,
-        x: Scalar,
-        delta: Scalar,
-        new_alpha: G1Projective,
-    ) -> G1Projective {
-        let term1 = old_witness - new_alpha;
-        let term2_inv = (delta - x).invert().expect("delta - x invertible");
-        term1 * term2_inv
-    }
+   
 }
