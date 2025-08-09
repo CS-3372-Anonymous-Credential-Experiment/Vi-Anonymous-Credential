@@ -66,3 +66,9 @@ pub fn generate_bbs_param_keypair() -> (SignatureParamsG1::<Bls12_381>, KeypairG
 
     return (params, keypair_g2);
 }
+
+
+pub fn print_type_of<T>(_: &T) {
+    println!("{}", std::any::type_name::<T>());
+}
+
