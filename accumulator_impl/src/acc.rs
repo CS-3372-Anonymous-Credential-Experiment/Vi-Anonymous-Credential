@@ -28,7 +28,6 @@ impl ECAccumulator {
         ECAccumulator { alpha: alpha_0, deltas }
     }
 
-        
     pub fn update_acc(&mut self, x: &Fr, sk: &SecretKey<Fr>) {
         // Compute inverse as raw field element (Fp)
         let sum = *x + sk.0;
@@ -39,7 +38,7 @@ impl ECAccumulator {
         self.alpha = self.alpha.mul(inv);
     }
     
-    pub fn gen_witness(&self, x: &Fr, sk: SecretKey<Fr>) -> G1Projective {
+    pub fn gen_witness(&self, x: &Fr, sk: &SecretKey<Fr>) -> G1Projective {
         let sum = *x + sk.0;
         let inv = sum.inverse().unwrap();
         self.alpha.mul(inv)
@@ -47,6 +46,10 @@ impl ECAccumulator {
 
     pub fn get_alpha(&self) -> &G1Projective {
         &self.alpha
+    }
+
+    pub fn get_deltas(&self) -> &Vec<Fr> {
+        &self.deltas
     }
    
 }

@@ -1,11 +1,8 @@
-use accumulator_impl::credential::Credential;
-use ark_bls12_381::Fr
-use ark_bls12_381::G1Projective
+use crate::credential::Credential;
+use ark_bls12_381::Fr;
+use ark_bls12_381::{G1Projective, G2Projective, Bls12_381};
 use bbs_plus::prelude::*;
-use rand::rngs::OsRng;
-use ark_ecc::Group;
-use ark_ff::Field;
-use accumulator_impl::helper::*;
+use crate::helper::*;
 
 pub struct Holder {
     cred: Credential,
@@ -19,9 +16,13 @@ impl Holder {
         Self {cred: cred}
     }
 
+    pub fn get_cred(&self) -> &Credential {
+        &self.cred
+    }
+
 
     // g, h is the public parameter from issuer
-    pub fn verify_mem(&self , acc_val: &G1Projective, 
+    pub fn verify_mem(&self ,
         g: &G1Projective, 
         h: &G1Projective, 
         pk: &PublicKeyG2<Bls12_381>,
@@ -30,17 +31,18 @@ impl Holder {
         g2: &G2Projective,
         j: &G2Projective,
     ) -> bool {
-        cx_point, cx_fr = compute_commitment_and_field(&self.cred.get_x_val(),g, h, &self.get_r());
-        let message = vec![self.cred.get_message(), cx_fr];
-        let result = self.cred.signature.verify(&message, pk).is_ok();
+        let (_cx_point, cx_fr) = compute_commitment_and_field(&self.cred.get_x_val(),g, h, &self.cred.get_r());
+        let mut message = self.cred.get_message().clone();  // Vec<Fr>
+        message.push(cx_fr);
+        let is_valid = self.cred.get_signature().verify(&message, pk.clone(), param.clone()).is_ok();
         if is_valid {
             println!("✅ Signature is valid over X || Cx");
         } else {
             println!("❌ Signature verification failed");
-            return False
+            return false
         }
 
-        return verify_witness(alpha, &self.x, self.cred.get_witness(), g2, j);
+        return verify_witness(alpha, &self.cred.get_x_val(), self.cred.get_witness(), g2, j);
 
     }
 
