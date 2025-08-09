@@ -1,14 +1,146 @@
-use ark_std::UniformRand;
-use ark_bls12_381::{ G1Projective, G2Projective};
-use ark_ec::CurveGroup;
-use accumulator_impl::helper::compute_pairing;
+use accumulator_impl::holder::*;
+use accumulator_impl::issuer::*;
+use accumulator_impl::acc::*;
+use accumulator_impl::helper::*;
+use ark_bls12_381::Fr;
 
 fn main() {
-    let mut rng = rand::thread_rng();
 
-    let z = G1Projective::rand(&mut rng).into_affine();
-    let j = G2Projective::rand(&mut rng).into_affine();
+// Testing the test-case 1:
 
-    let result = compute_pairing(z, j);
-    println!("e(z, j) = {:?}", result);
+// Issuer Creation
+let _issuer_idp = Issuer::new();
+let _g1 = _issuer_idp.get_g1();
+// Initialize the accumulator
+let mut _acc = ECAccumulator::new(_g1);
+
+//Generate a Witness & Issuing a Credential
+/*
+    Define: Name: 19, DOB: 15112004, Age:21, Score:75, Candidate_ID: 245
+*/
+let mut messages: Vec<Fr> = Vec::new();
+messages.push(Fr::from(19u128));
+messages.push(Fr::from(15_112_004u128)); // DOB
+messages.push(Fr::from(21u128));          // Age
+messages.push(Fr::from(75u128));          // Score
+messages.push(Fr::from(245u128)); // Candidate ID
+
+
+// Sign the message & testing the witness
+
+let _candidate_cert = _issuer_idp.gen_witness_n_cred(&_acc, messages);
+// println!("The Signature {:?}", _candidate_cert.get_signature());
+// println!("The Message {:?}", _candidate_cert.get_message());
+// println!("The secrete value x {:?}", _candidate_cert.get_x_val());
+// println!("The Witness {:?}", _candidate_cert.get_witness());
+// println!("The Random Value r {:?}", _candidate_cert.get_r());
+
+// Creating a Holder keep the cred
+let _alice = Holder::new(_candidate_cert);
+
+// Get the public parameter from issuer & accumulator
+let _alpha = _acc.get_alpha(); // alpha
+let (_g, _h, _k, _z) = _issuer_idp.get_g_h_k_z();
+let _pk = _issuer_idp.get_pk();
+let _g2 = _issuer_idp.get_g2();
+let _j = _issuer_idp.get_j();
+let _param = _issuer_idp.get_sig_param();
+
+println!("The alpha when Alice only {}", _alpha);
+let is_valid = _alice.verify_mem(_g, _h, _pk, _param, _alpha, _g2, _j);
+println!("is valid {}", is_valid);
+
+
+// Adding more Credentials to the accumulator
+/*
+
+    Define: Name 20, DOB: 22082008, Age: 23, Score: 65, Candidate_ID: 208
+*/
+
+let mut messages_2: Vec<Fr> = Vec::new();
+messages_2.push(Fr::from(20u128));
+messages_2.push(Fr::from(22_082_004u128)); // DOB
+messages_2.push(Fr::from(23u128));          // Age
+messages_2.push(Fr::from(65u128));          // Score
+messages_2.push(Fr::from(208u128)); // Candidate ID
+
+let _candidate_cert_2 = _issuer_idp.gen_witness_n_cred(&_acc, messages_2);
+// println!("The Signature {:?}", _candidate_cert_2.get_signature());
+// println!("The Message {:?}", _candidate_cert_2.get_message());
+// println!("The secrete value x {:?}", _candidate_cert_2.get_x_val());
+// println!("The Witness {:?}", _candidate_cert_2.get_witness());
+// println!("The Random Value r {:?}", _candidate_cert_2.get_r());
+
+
+let mut _carol = Holder::new(_candidate_cert_2);
+let _alpha_2 = _acc.get_alpha(); // alpha
+println!("The alpha with [Alice, Carol] {}", _alpha_2);
+let is_valid = _carol.verify_mem(_g, _h, _pk, _param, _alpha_2, _g2, _j);
+println!("is valid {}", is_valid);
+
+
+/*
+
+    Define: Name 25, DOB: 22082008, Age: 23, Score: 65, Candidate_ID: 208
+*/
+
+let mut messages_3: Vec<Fr> = Vec::new();
+messages_3.push(Fr::from(25u128));
+messages_3.push(Fr::from(22_082_004u128)); // DOB
+messages_3.push(Fr::from(23u128));          // Age
+messages_3.push(Fr::from(65u128));          // Score
+messages_3.push(Fr::from(208u128)); // Candidate ID
+
+
+let _candidate_cert_3 = _issuer_idp.gen_witness_n_cred(&_acc, messages_3);
+// println!("The Signature {:?}", _candidate_cert_2.get_signature());
+// println!("The Message {:?}", _candidate_cert_2.get_message());
+// println!("The secrete value x {:?}", _candidate_cert_2.get_x_val());
+// println!("The Witness {:?}", _candidate_cert_2.get_witness());
+// println!("The Random Value r {:?}", _candidate_cert_2.get_r());
+
+
+let mut _james = Holder::new(_candidate_cert_3);
+
+let _alpha_3 = _acc.get_alpha(); // alpha
+println!("The alpha with [Alice, Carol, James] {}", _alpha_3);
+let is_valid = _james.verify_mem(_g, _h, _pk, _param, _alpha_3, _g2, _j);
+println!("is valid {}", is_valid);
+
+
+// Doing the Revocation Process
+
+// Revoke Alice's Credential
+let alice_cred = _alice.get_cred();
+let delta = _issuer_idp.revoke_a_cred(&mut _acc, alice_cred);
+println!("The delta {:?}", delta);
+println!("the accumulator state of deltas {:?}", _acc.get_deltas());
+println!("Alice x's value {:?}", alice_cred.get_x_val());
+
+
+let _alpha_4 = _acc.get_alpha(); 
+let is_valid = _alice.verify_mem(_g, _h, _pk, _param, _alpha_4, _g2, _j);
+println!("is Alice still valid {}", is_valid);
+
+
+// Carol & James update the witness
+
+println!("The alpha with [Carol, James] {:?}", _acc.get_alpha());
+_carol.update_witness(delta, *_acc.get_alpha());
+_james.update_witness(delta, *_acc.get_alpha());
+
+
+// Check the Validity of Carol & James's Credential
+
+let is_james_valid_new = _james.verify_mem(_g, _h, _pk, _param, _acc.get_alpha(), _g2, _j);
+let is_carol_valid_new = _carol.verify_mem(_g, _h, _pk, _param, _acc.get_alpha(), _g2, _j);
+
+println!("Is James still valid {:?}", is_james_valid_new);
+println!("Is Carol still valid {:?}", is_carol_valid_new);
+
+
+
+
+
+
 }
