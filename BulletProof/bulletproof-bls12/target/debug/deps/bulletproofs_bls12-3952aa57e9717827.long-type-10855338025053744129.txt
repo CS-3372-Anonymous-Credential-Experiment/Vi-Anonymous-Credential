@@ -1,0 +1,1 @@
+fn(_, _, usize) -> _ {bulletproofs_bls12::inner::delta::<_>}: Borrow<Fp<MontBackend<FrConfig, 4>, 4>>
