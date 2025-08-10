@@ -1,0 +1,19 @@
+[package]
+name = "bulletproofs_bls12"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+ark-ff = "0.4"           # field traits
+ark-ec = "0.4"           # curve traits & hashing hooks
+ark-bls12-381 = "0.4"    # BLS12-381 curve implementation
+ark-serialize = "0.4"    # canonical (de)serialization
+ark-std = "0.4"
+rand = "0.8"
+merlin = "3"
+sha2 = "0.10"            # hashing primitives
+# optional (highly recommended for fast MSM, if available)
+ark-msm = "=0.3.0-alpha.1"
+rand_core = "0.6"
+
+# (Pick exact versions from crates.io that match arkworks release.)

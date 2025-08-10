@@ -1,0 +1,2 @@
+WBMap<ark_ec::short_weierstrass::Projective<ark_bls12_381::g1::Config>>
+WBMap<ark_ec::short_weierstrass::Projective<ark_bls12_381::g1::Config>>: HashToField<Fp<MontBackend<FqConfig, 6>, 6>>
