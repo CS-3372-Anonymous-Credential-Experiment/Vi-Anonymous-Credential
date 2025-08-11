@@ -14,6 +14,8 @@ use ark_ff::PrimeField;
 use ark_serialize::CanonicalSerialize;
 use sha2::Digest;
 use ark_ff::Field;
+use rand::rngs::StdRng;
+use rand::SeedableRng;
 /// Error type for your function (customize if you have a different error type)
 type HashToCurveError = Box<dyn std::error::Error>;
 
@@ -64,6 +66,32 @@ pub fn hadamard_prod(a: &[Fr], b: &[Fr]) -> Vec<Fr> {
     a.iter()
         .zip(b.iter())
         .map(|(x, y)| *x * *y)
+        .collect()
+}
+
+pub fn scale_vector_by_scalar(a_vec: &[Fr], x: Fr) -> Vec<Fr> {
+    a_vec.iter().map(|&a_val| a_val * x).collect()
+}
+
+pub fn vector_addition(a_vec: &[Fr], b_vec: &[Fr]) -> Vec<Fr> {
+    assert_eq!(
+        a_vec.len(),
+        b_vec.len(),
+        "Vector lengths must be equal for element-wise addition"
+    );
+    a_vec.iter().zip(b_vec.iter()).map(|(&a_val, &b_val)| a_val + b_val).collect()
+}
+
+pub fn hadamard_product_of_generators(
+    g_vec: &[G1Projective],
+    h_vec: &[G1Projective],
+    scalar: Fr, // Optional scalar to scale each pair
+) -> Vec<G1Projective> {
+    assert_eq!(g_vec.len(), h_vec.len(), "Vectors must have the same length");
+
+    g_vec.iter()
+        .zip(h_vec.iter())
+        .map(|(&g, &h)| g.mul(scalar) + h.mul(scalar)) // Element-wise scaled addition
         .collect()
 }
 
@@ -404,6 +432,11 @@ pub fn get_h_prime(
 }
 
 
+// Helper method to raise a vector of generators to a scalar power
+pub fn raise_generators_to_power(generators: &[G1Projective], scalar: Fr) -> Vec<G1Projective> {
+    generators.iter().map(|g| g.mul(scalar)).collect()
+}
+
 pub fn raise_g_to_t_x(
     g: G1Projective,
     t: &[Fr],  // coefficients for BLS12-381 scalar field
@@ -420,4 +453,185 @@ pub fn raise_g_to_t_x(
     result += &term_2;
 
     result
+}
+
+pub fn inner_prod_argument(
+        g_vec : &[G1Projective],
+        h_vec : &[G1Projective],
+        u: &G1Projective,
+        P: &G1Projective,
+        a_vec : &Vec<Fr>,
+        b_vec : &Vec<Fr>,
+        current_n: usize, // Changed from Fr to usize for current size
+        x_list : &mut Vec<Fr>,
+        original_n: usize,      // Added to track original size
+        // s_list = &Vec<Fr>
+    ) -> bool {
+        if g_vec.len() != h_vec.len() {
+            return false;
+        }
+        if current_n == 1 {
+            // P send V a, b
+            // V compute c = a * b
+            // c = a * b;
+            // compute g from g_vec, s_list
+            // compute h from h_vec, s_list
+            // check if P = g^a * h^b * u^(a *b)
+            let s_list = compute_s_vector(&x_list, original_n);
+            let s_list_inv = inverse_the_vector(&s_list);
+            let a = a_vec[0];
+            let b = b_vec[0];
+            // V compute a, b
+            let c = a * b;
+
+            // Compute g' = \prod g_i^{s_i}
+            let mut g = G1Affine::identity().into_group(); // identity point
+            for i in 0..g_vec.len() { // Start from 0 to include all elements
+                let cur_g = g_vec[i].mul(s_list[i]); // Multiply g_i by s_i (raise to the power)
+                g = g + cur_g; // Accumulate the product
+            }
+
+            let mut h = G1Affine::identity().into_group(); // identity point
+            for i in 0..h_vec.len() { // Start from 0 to include all elements
+                let cur_h = h_vec[i].mul(s_list_inv[i]); // Multiply h_i by 1/ s_i (raise to the power)
+                h = h + cur_h; // Accumulate the product
+            }
+            
+            let rhs = g.mul(a) + h.mul(b) + u.mul(c);
+            let lhs = P;
+            return rhs == *lhs
+
+        }
+        else {
+            let mid = current_n / 2 ;
+            let a_lo = a_vec[0..mid].to_vec();
+            let a_hi = a_vec[mid..].to_vec();
+            let b_lo = b_vec[0..mid].to_vec();
+            let b_hi = b_vec[mid..].to_vec();
+
+            let g_lo = g_vec[0..mid].to_vec();
+            let g_hi = g_vec[mid..].to_vec();
+            let h_lo = h_vec[0..mid].to_vec();
+            let h_hi = h_vec[mid..].to_vec();
+
+            let cl = inner_product(&a_lo, &b_hi);
+            let cr = inner_product(&a_hi, &b_lo);
+
+            let L = pedersen_commit_with_two_vectors(&u, cl, &g_hi, &a_lo, &h_lo, &b_hi);
+            let R = pedersen_commit_with_two_vectors(&u, cr, &g_lo, &a_hi, &h_hi, &b_lo);
+
+            // P send to V: L, R
+
+            // V send to P: x in Z_p /{0}
+            let mut rng = StdRng::seed_from_u64(42u64);
+            let mut x;
+            loop {
+                x = Fr::rand(&mut rng);
+                if !x.is_zero() {
+                    break;
+                }
+            }
+            x_list.push(x);
+
+            // P_ip & V_ip compute
+            let x_inv = x.inverse().expect("x must be non-zero");
+            let g_prime_term_1 = raise_generators_to_power(&g_hi,x_inv);
+            let g_prime_term_2 = raise_generators_to_power(&g_lo,x);
+            let g_prime = hadamard_product_of_generators(&g_prime_term_1, &g_prime_term_2, Fr::from(1u64));
+
+            let h_prime_term_1 = raise_generators_to_power(&h_lo,x);
+            let h_prime_term_2 = raise_generators_to_power(&h_hi,x_inv);
+            let h_prime = hadamard_product_of_generators(&h_prime_term_1, &h_prime_term_2, Fr::from(1u64));
+
+            let x_square = x * x;
+            let P_prime = L.mul(x_square) + P + R.mul(x_square.inverse().expect("x-square must be non-zero"));
+
+            // P_ip compute and update the a' and b'
+            let a_prime_term_1 = scale_vector_by_scalar(&a_lo, x);
+            let a_prime_term_2 = scale_vector_by_scalar(&a_hi, x_inv);
+            let a_prime = vector_addition(&a_prime_term_1, &a_prime_term_2);
+
+            let b_prime_term_1 = scale_vector_by_scalar(&b_lo, x_inv);
+            let b_prime_term_2 = scale_vector_by_scalar(&b_hi, x);
+            let b_prime = vector_addition(&b_prime_term_1, &b_prime_term_2);
+
+            inner_prod_argument(
+                &g_prime,
+                &h_prime,
+                u,
+                &P_prime,
+                &a_prime,
+                &b_prime,
+                mid ,
+                x_list,
+                original_n,
+            )
+
+        }   
+}
+
+
+/// Computes the vector s = (s₁, ..., sₙ) based on challenges x₁, ..., x₍log₂(n)₎.
+///
+    /// # Arguments
+    /// * `challenges` - A vector of Fr elements representing the challenges x₁, ..., x₍log₂(n)₎.
+    /// * `n` - The length of the output vector s (must be a power of 2).
+    ///
+    /// # Panics
+    /// Panics if `n` is not a power of 2 or if the number of challenges is not log₂(n).
+    ///
+    /// # Returns
+    /// A vector of Fr elements representing sᵢ = ∏_{j=1}^{log₂(n)} x_j^{b(i,j)},
+    /// where b(i,j) = 1 if the j-th bit of i-1 is 1, and -1 otherwise.
+    ///
+    /// # Example
+    /// ```
+    /// let challenges = vec![Fr::from(2), Fr::from(3)]; // log₂(4) = 2 challenges
+    /// let s = compute_s_vector(&challenges, 4);
+    /// // s[0] = 2^(-1) * 3^(-1) = 1/6 (for i=1, i-1=0, all bits 0)
+    /// // s[1] = 2^1 * 3^(-1) = 2/3 (for i=2, i-1=1, first bit 1)
+/// ```
+pub fn compute_s_vector(challenges: &[Fr], n: usize) -> Vec<Fr> {
+    // Check that n is a power of 2
+    assert!(
+        n.is_power_of_two(),
+        "n must be a power of 2, got {}",
+        n
+    );
+    // Check that the number of challenges matches log₂(n)
+    let log_n = n.trailing_zeros() as usize;
+    assert_eq!(
+        challenges.len(),
+        log_n,
+        "Number of challenges must be log₂(n) = {}, got {}",
+        log_n,
+        challenges.len()
+    );
+
+    let mut s = Vec::with_capacity(n);
+    for i in 0..n {
+        let mut s_i = Fr::one(); // Initialize s_i as 1
+        let mut bits = i; // i-1 in 0-based indexing, bits of i-1
+
+        // Compute s_i = ∏ x_j^{b(i,j)}
+        for j in 0..log_n {
+            let bit = (bits & 1) == 1; // Check j-th bit of i-1
+            let x_j = &challenges[j];
+            if bit {
+                s_i *= x_j; // x_j ^ 1
+            } else {
+                s_i *= x_j.inverse().unwrap(); // x_j ^ -1
+            }
+            bits >>= 1; // Shift to next bit
+        }
+        s.push(s_i);
+    }
+    s
+}
+
+pub fn inverse_the_vector(original_vec: &[Fr]) -> Vec<Fr> {
+    original_vec
+        .iter()
+        .map(|&x| x.inverse().expect("Cannot invert zero element"))
+        .collect()
 }
