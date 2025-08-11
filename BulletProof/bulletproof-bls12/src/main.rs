@@ -1,6 +1,4 @@
 use bulletproofs_bls12::inner::*;
-
-
 use ark_bls12_381::{G1Projective, Fr};
 use ark_ff::UniformRand;
 use ark_ec::{Group, CurveGroup};
@@ -10,7 +8,7 @@ use std::ops::Mul;
 use ark_ff::{Zero};
 
 
-fn main() {
+pub fn linear_size_range_proof() {
     // This bullet proof is proving the number 13 in range [0, 2^64 -1]
     // But this is not working with the logarithmic size reduction - only for purely linear increment in the size
     // of the data: aL, aR
@@ -170,3 +168,17 @@ fn main() {
 
     
 }
+
+
+fn main() {
+    let h = G1Projective::generator().mul(Fr::rand(&mut rng));
+    let g = G1Projective::generator().mul(Fr::rand(&mut rng));
+    let label_g = "bullet-proof-g";
+    let label_h = "bullet-proof-h";
+    let g_vec = derive_generators(label_g, n).unwrap();
+    let h_vec = derive_generators(label_h, n).unwrap();
+
+    // the bullet-proof of log-size is the enhancement of linear_size_range_proof (send less data + more ZKP)
+    // for the logic check section 4.2 in the paper
+    
+}   
