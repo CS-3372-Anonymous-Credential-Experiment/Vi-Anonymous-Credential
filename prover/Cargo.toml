@@ -1,0 +1,17 @@
+[package]
+name = "prover"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+ark-bls12-381 = "0.4"
+ark-ec = "0.4"
+ark-ff = "0.4"
+ark-serialize = "0.4"
+sha2 = "0.10"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+rand = "0.8"
+accumulator_impl = {path = "/home/accumulator/Vi-Anonymous-Credential/Accumulator/Accumulator_CA/accumulator_impl" }
+num-bigint = "0.4"
+num-traits = "0.2"
