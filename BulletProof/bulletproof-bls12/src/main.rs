@@ -6,6 +6,9 @@ use rand::rngs::StdRng;
 use rand::SeedableRng;
 use std::ops::Mul;
 use ark_ff::{Zero};
+use rand::Rng;
+use ark_ff::Field;
+
 
 
 pub fn linear_size_range_proof() {
@@ -169,8 +172,187 @@ pub fn linear_size_range_proof() {
     
 }
 
+fn log_size_range_proof(v: u64, n: usize) -> bool {
+    if !n.is_power_of_two() {
+        println!("❌ n must be a power of 2");
+        return false;
+    }
+
+    // -------------------------
+    // 1. Setup
+    // -------------------------
+    let mut rng = StdRng::seed_from_u64(42u64);
+    let h = G1Projective::generator().mul(Fr::rand(&mut rng));
+    let g = G1Projective::generator().mul(Fr::rand(&mut rng));
+
+    let label_g = "bullet-proof-g";
+    let label_h = "bullet-proof-h";
+    let g_vec = derive_generators(label_g, n).unwrap();
+    let h_vec = derive_generators(label_h, n).unwrap();
+
+    let gamma = Fr::rand(&mut rng);
+    let alpha = Fr::rand(&mut rng);
+
+    // Encode value
+    let a_l = encoding_message_to_vector(v.into(), n);
+    let a_r = message_sub_one(&a_l);
+    let (s_l, s_r, rho) = sample_s_rho_vectors(&mut rng, n);
+
+    // Commitments A and S
+    let A = pedersen_commit_with_two_vectors(&h, alpha, &g_vec, &a_l, &h_vec, &a_r);
+    let S = pedersen_commit_with_two_vectors(&h, rho, &g_vec, &s_l, &h_vec, &s_r);
+
+    // V = g^v * h^gamma
+    let V = g.mul(Fr::from(v)) + h.mul(gamma);
+
+    // -------------------------
+    // 2. Verifier challenges y, z
+    // -------------------------
+    let y = random_nonzero_scalar(&mut rng);
+    let z = random_nonzero_scalar(&mut rng);
+
+    // -------------------------
+    // 3. Prover computes t(X) poly and T1, T2 commitments
+    // -------------------------
+    let l_poly = compute_l::<Fr>(&a_l, &s_l, z);
+    let r_poly = compute_r::<Fr>(&a_r, &s_r, y, z);
+    let t_poly = compute_t::<Fr>(&l_poly.0, &l_poly.1, &r_poly.0, &r_poly.1);
+
+    let tau_1 = Fr::rand(&mut rng);
+    let tau_2 = Fr::rand(&mut rng);
+    let T1 = g.mul(t_poly[1]) + h.mul(tau_1);
+    let T2 = g.mul(t_poly[2]) + h.mul(tau_2);
+
+    // -------------------------
+    // 4. Verifier sends x
+    // -------------------------
+    let x = random_nonzero_scalar(&mut rng);
+
+    // -------------------------
+    // 5. Prover computes responses
+    // -------------------------
+    let l_x = compute_l_x(&a_l, &s_l, z, x);
+    let r_x = compute_r_x(&a_r, &s_r, y, z, x);
+    let t_hat = inner_product(&l_x, &r_x);
+    let tau_x = tau_2 * x * x + tau_1 * x + gamma * z * z;
+    let mu = alpha + rho * x;
+
+    // -------------------------
+    // 6. Verifier checks t(X) equation
+    // -------------------------
+    let lhs = g.mul(t_hat) + h.mul(tau_x);
+    let rhs = V.mul(z * z) + g.mul(delta(y, z, n)) + T1.mul(x) + T2.mul(x * x);
+    if lhs != rhs {
+        println!("❌ t(x) check failed");
+        return false;
+    }
+
+    // -------------------------
+    // 7. Prepare for IPA
+    // -------------------------
+    let minus_z = vec![-z; n];
+    let y_power = y_pows::<Fr>(y, n);
+    let y_power_scaled: Vec<Fr> = y_power.iter().map(|yi| *yi * z).collect();
+    let z_squared = z * z;
+    let twos_scaled: Vec<Fr> = twos_vec::<Fr>(n).iter().map(|ti| *ti * z_squared).collect();
+    let exp_yz: Vec<Fr> = y_power_scaled
+        .iter()
+        .zip(twos_scaled.iter())
+        .map(|(a, b)| *a + *b)
+        .collect();
+
+    let h_prime = get_h_prime(&h_vec, y);
+    let P = A + S.mul(x) + commit(&g_vec, &minus_z) + commit(&h_prime, &exp_yz) - h.mul(mu);
+
+    let u = G1Projective::generator().mul(Fr::rand(&mut rng));
+    let P = P + u.mul(t_hat);
+
+    // -------------------------
+    // 8. Recursive Inner Product Argument
+    // -------------------------
+    let mut g_vec_clone = g_vec.clone();
+    let mut h_prime_clone = h_prime.clone();
+    let mut a_vec = l_x.clone();
+    let mut b_vec = r_x.clone();
+    let mut Ls = Vec::new();
+    let mut Rs = Vec::new();
+    let mut xs = Vec::new();
+
+    while g_vec_clone.len() > 1 {
+        let m = g_vec_clone.len() / 2;
+
+        let (g_lo, g_hi) = g_vec_clone.split_at(m);
+        let (h_lo, h_hi) = h_prime_clone.split_at(m);
+        let (a_lo, a_hi) = a_vec.split_at(m);
+        let (b_lo, b_hi) = b_vec.split_at(m);
+
+        let c_L = inner_product(a_lo, b_hi);
+        let c_R = inner_product(a_hi, b_lo);
+
+        let L = pedersen_commit_with_two_vectors(&u, c_L, g_hi, a_lo, h_lo, b_hi);
+        let R = pedersen_commit_with_two_vectors(&u, c_R, g_lo, a_hi, h_hi, b_lo);
+
+        Ls.push(L);
+        Rs.push(R);
+
+        let x_ip = random_nonzero_scalar(&mut rng);
+        xs.push(x_ip);
+        let x_inv = x_ip.inverse().unwrap();
+
+        // Fold generators
+        g_vec_clone = g_lo.iter().zip(g_hi.iter())
+            .map(|(gl, gh)| gl.mul(x_ip) + gh.mul(x_inv))
+            .collect();
+        h_prime_clone = h_lo.iter().zip(h_hi.iter())
+            .map(|(hl, hh)| hl.mul(x_inv) + hh.mul(x_ip))
+            .collect();
+
+        // Fold vectors
+        a_vec = a_lo.iter().zip(a_hi.iter())
+            .map(|(al, ah)| *al * x_ip + *ah * x_inv)
+            .collect();
+        b_vec = b_lo.iter().zip(b_hi.iter())
+            .map(|(bl, bh)| *bl * x_inv + *bh * x_ip)
+            .collect();
+    }
+
+    // -------------------------
+    // 9. Final IPA check
+    // -------------------------
+    let a_final = a_vec[0];
+    let b_final = b_vec[0];
+    let check = g_vec_clone[0].mul(a_final)
+        + h_prime_clone[0].mul(b_final)
+        + u.mul(a_final * b_final);
+
+    let mut P_check = P;
+    for (i, (L, R)) in Ls.iter().zip(Rs.iter()).enumerate() {
+        let x_sq = xs[i] * xs[i];
+        let x_inv_sq = xs[i].inverse().unwrap().square();
+        P_check = L.mul(x_sq) + P_check + R.mul(x_inv_sq);
+    }
+
+    if P_check == check {
+        println!("✅ Log-size range proof verified");
+        true
+    } else {
+        println!("❌ IPA verification failed");
+        false
+    }
+}
+
+fn random_nonzero_scalar<R: Rng>(rng: &mut R) -> Fr {
+    loop {
+        let s = Fr::rand(rng);
+        if !s.is_zero() {
+            return s;
+        }
+    }
+}
 
 fn main() {
+    let mut rng = StdRng::seed_from_u64(42u64);
+    let n = 64; // the bit size
     let h = G1Projective::generator().mul(Fr::rand(&mut rng));
     let g = G1Projective::generator().mul(Fr::rand(&mut rng));
     let label_g = "bullet-proof-g";
@@ -180,5 +362,22 @@ fn main() {
 
     // the bullet-proof of log-size is the enhancement of linear_size_range_proof (send less data + more ZKP)
     // for the logic check section 4.2 in the paper
+
+    let secret_number: u64 = 42;
+    let range_bits: usize = 64;
+    
+    println!("--- From-Scratch Logarithmic-Sized Range Proof ---");
+    println!(
+        "Attempting to generate and verify a proof for secret value: {} within range [0, 2^{}-1]\n",
+        secret_number, range_bits
+    );
+
+    let success = log_size_range_proof(secret_number, range_bits);
+
+    if success {
+        println!("\nProof generation and verification completed successfully.");
+    } else {
+        println!("\nProof generation or verification failed.");
+    }
     
 }   
