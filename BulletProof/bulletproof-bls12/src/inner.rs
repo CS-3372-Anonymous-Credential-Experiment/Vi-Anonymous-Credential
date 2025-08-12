@@ -414,7 +414,6 @@ pub fn delta<F: PrimeField>(y: F, z: F, n: usize) -> F {
     (z - z_sq) * sum_y - z_cu * sum_two
 }
 
-
 pub fn get_h_prime(
     h: &[G1Projective],
     y: Fr,
@@ -430,7 +429,6 @@ pub fn get_h_prime(
      })
      .collect()
 }
-
 
 // Helper method to raise a vector of generators to a scalar power
 pub fn raise_generators_to_power(generators: &[G1Projective], scalar: Fr) -> Vec<G1Projective> {
@@ -569,7 +567,6 @@ pub fn inner_prod_argument(
 
         }   
 }
-
 
 /// Computes the vector s = (s₁, ..., sₙ) based on challenges x₁, ..., x₍log₂(n)₎.
 ///
