@@ -1,9 +1,7 @@
-pragma circom 2.0.0;
-
-// NOTE: This is a *skeleton* to start with. We'll fill in the byte->bit and SHA packing
-// gadgets in later steps. For now this defines the public/ signal layout we will use.
 include "/home/accumulator/Vi-Anonymous-Credential/circomlib/circuits/sha256/sha256.circom";
 include "/home/accumulator/Vi-Anonymous-Credential/circomlib/circuits/poseidon.circom";
+
+
 
 template GenZKP_Strong() {
     // --- public inputs (hash words and scalar outputs) ---
@@ -15,18 +13,17 @@ template GenZKP_Strong() {
     signal input x_sigma;
     signal input x_rho;
 
-    // ---  witness scalars ---
-    signal  input x;
-    signal  input l;
-    signal  input sigma;
-    signal  input rho;
+    // --- witness scalars ---
+    signal input x;
+    signal input l;
+    signal input sigma;
+    signal input rho;
 
-    // ---  serialized point bytes (BLS12-381 G1 uncompressed = 96 bytes) ---
-    var POINT_BYTES = 96;
-    signal  Cx_bytes[POINT_BYTES];
-    signal  Cw_bytes[POINT_BYTES];
-    signal  Csigma_bytes[POINT_BYTES];
-    signal  Crho_bytes[POINT_BYTES];
+    // --- serialized point bytes ---
+    signal input Cx_bytes[96];
+    signal input Cw_bytes[96];
+    signal input Csigma_bytes[96];
+    signal input Crho_bytes[96];
 
     // Poseidon binding for x (cheap in-circuit hash) -> Hx public
     component poseX = Poseidon(1);
@@ -34,13 +31,9 @@ template GenZKP_Strong() {
     signal Hx;
     Hx <== poseX.out;
 
-    // TODO: later: convert bytes -> bits, run SHA256, pack into 8x32 words and assert equality.
-
-    // enforce the scalar relations (we will keep these here as constraints)
+    // enforce the scalar relations
     x_sigma === x * sigma;
     x_rho === x * rho;
-
-    // public outputs: the C*_hash_words, x_sigma, x_rho, and Hx are exposed implicitly
 }
 
 component main = GenZKP_Strong();

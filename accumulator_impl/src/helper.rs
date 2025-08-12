@@ -7,6 +7,7 @@ use bbs_plus::setup::{SignatureParamsG1,KeypairG2};
 use rand::thread_rng;
 use std::ops::Mul;
 use ark_serialize::{CanonicalSerialize};
+use serde_json::json;
 
 pub fn compute_pairing(
     z: G1Affine,
@@ -72,3 +73,17 @@ pub fn print_type_of<T>(_: &T) {
     println!("{}", std::any::type_name::<T>());
 }
 
+
+
+pub fn sha256_to_words(digest: &[u8]) -> [u32; 8] {
+    assert_eq!(digest.len(), 32);
+    let mut out = [0u32; 8];
+    for i in 0..8 {
+        let base = i*4;
+        out[i] = ((digest[base] as u32) << 24)
+               | ((digest[base+1] as u32) << 16)
+               | ((digest[base+2] as u32) << 8)
+               |  (digest[base+3] as u32);
+    }
+    out
+}

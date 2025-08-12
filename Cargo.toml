@@ -1,0 +1,6 @@
+[workspace]
+members = [
+    "accumulator_impl",
+    "prover",
+    "verifier"
+]
