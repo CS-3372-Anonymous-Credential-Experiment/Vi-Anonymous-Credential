@@ -248,7 +248,8 @@ fn log_size_range_proof(v: u64, n: usize) -> bool {
     }
 
     // -------------------------
-    // 7. Prepare for IPA
+    // 7. Prepare P and generators for §5.2 IPA
+    // P  = A + x S + g^{-z} h'(z y^i + z^2 2^i)  - h^μ + u^{⟨l_x, r_x⟩}
     // -------------------------
     let minus_z = vec![-z; n];
     let y_power = y_pows::<Fr>(y, n);
@@ -262,84 +263,46 @@ fn log_size_range_proof(v: u64, n: usize) -> bool {
         .collect();
 
     let h_prime = get_h_prime(&h_vec, y);
-    let P = A + S.mul(x) + commit(&g_vec, &minus_z) + commit(&h_prime, &exp_yz) - h.mul(mu);
 
+    // base for IPA
     let u = G1Projective::generator().mul(Fr::rand(&mut rng));
-    let P = P + u.mul(t_hat);
+
+    // P as in the paper (additively written group)
+    let c = inner_product(&l_x, &r_x);
+    let P = commit(&g_vec, &l_x) 
+      + commit(&h_vec, &r_x) 
+      + u.mul(c);
+
 
     // -------------------------
-    // 8. Recursive Inner Product Argument
+    // 8. §5.2 Logarithmic-size Inner-Product Argument (folding)
     // -------------------------
-    let mut g_vec_clone = g_vec.clone();
-    let mut h_prime_clone = h_prime.clone();
-    let mut a_vec = l_x.clone();
-    let mut b_vec = r_x.clone();
-    let mut Ls = Vec::new();
-    let mut Rs = Vec::new();
-    let mut xs = Vec::new();
+    let mut g_cur = g_vec.clone();
+    let mut h_cur = h_vec.clone();
+    let mut a_cur = l_x.clone();
+    let mut b_cur = r_x.clone();
+    let mut xs: Vec<Fr> = Vec::new();
 
-    while g_vec_clone.len() > 1 {
-        let m = g_vec_clone.len() / 2;
-
-        let (g_lo, g_hi) = g_vec_clone.split_at(m);
-        let (h_lo, h_hi) = h_prime_clone.split_at(m);
-        let (a_lo, a_hi) = a_vec.split_at(m);
-        let (b_lo, b_hi) = b_vec.split_at(m);
-
-        let c_L = inner_product(a_lo, b_hi);
-        let c_R = inner_product(a_hi, b_lo);
-
-        let L = pedersen_commit_with_two_vectors(&u, c_L, g_hi, a_lo, h_lo, b_hi);
-        let R = pedersen_commit_with_two_vectors(&u, c_R, g_lo, a_hi, h_hi, b_lo);
-
-        Ls.push(L);
-        Rs.push(R);
-
-        let x_ip = random_nonzero_scalar(&mut rng);
-        xs.push(x_ip);
-        let x_inv = x_ip.inverse().unwrap();
-
-        // Fold generators
-        g_vec_clone = g_lo.iter().zip(g_hi.iter())
-            .map(|(gl, gh)| gl.mul(x_ip) + gh.mul(x_inv))
-            .collect();
-        h_prime_clone = h_lo.iter().zip(h_hi.iter())
-            .map(|(hl, hh)| hl.mul(x_inv) + hh.mul(x_ip))
-            .collect();
-
-        // Fold vectors
-        a_vec = a_lo.iter().zip(a_hi.iter())
-            .map(|(al, ah)| *al * x_ip + *ah * x_inv)
-            .collect();
-        b_vec = b_lo.iter().zip(b_hi.iter())
-            .map(|(bl, bh)| *bl * x_inv + *bh * x_ip)
-            .collect();
-    }
-
-    // -------------------------
-    // 9. Final IPA check
-    // -------------------------
-    let a_final = a_vec[0];
-    let b_final = b_vec[0];
-    let check = g_vec_clone[0].mul(a_final)
-        + h_prime_clone[0].mul(b_final)
-        + u.mul(a_final * b_final);
-
-    let mut P_check = P;
-    for (i, (L, R)) in Ls.iter().zip(Rs.iter()).enumerate() {
-        let x_sq = xs[i] * xs[i];
-        let x_inv_sq = xs[i].inverse().unwrap().square();
-        P_check = L.mul(x_sq) + P_check + R.mul(x_inv_sq);
-    }
-
-    if P_check == check {
-        println!("✅ Log-size range proof verified");
+    if(inner_prod_argument(
+        &mut g_cur,
+        &mut h_cur,
+        &u,
+        &P,
+        &mut a_cur,
+        &mut b_cur,
+        n,
+        &mut xs,
+        n,
+    )) {
+        println!("✅ Log-size range proof IPA succeeded");
         true
     } else {
-        println!("❌ IPA verification failed");
-        false
+        println!("❌ Log-size range proof IPA failed");
+        return false;
     }
 }
+
+
 
 fn random_nonzero_scalar<R: Rng>(rng: &mut R) -> Fr {
     loop {
@@ -379,5 +342,4 @@ fn main() {
     } else {
         println!("\nProof generation or verification failed.");
     }
-    
 }   
