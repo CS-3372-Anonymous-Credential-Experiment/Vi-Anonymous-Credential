@@ -3,13 +3,14 @@
 
 This project implements a prototype of an anonymous credential issuance system using a bilinear pairing-based accumulator, designed to support an allow-list mechanism for revoking credentials and preventing misuse.
 
-The accumulator logic is currently being updated based on the model proposed by Flamini et al. (2025).
-👉 Read the paper here [https://eprint.iacr.org/2025/549.pdf]
-The bulletproof (linear-size scaling) was follow the idea of (Bünz et al., 2017)
-👉 Read the paper here [https://eprint.iacr.org/2017/1066.pdf]
-The idea of Anonymous Credential System was follow the idea of (Muth et al., 2023)
-👉 Read the paper here [https://eprint.iacr.org/2022/492.pdf]
+- The accumulator logic is currently being updated based on the model proposed by Flamini et al. (2025)
+  👉 Read the paper here: https://eprint.iacr.org/2025/549.pdf
 
+- The bulletproof (linear-size scaling) follows the idea of Bünz et al. (2017)
+  👉 Read the paper here: https://eprint.iacr.org/2017/1066.pdf
+
+- The idea of the Anonymous Credential System follows Muth et al. (2023)
+  👉 Read the paper here: https://eprint.iacr.org/2022/492.pdf
 We aim at the credential revocation problem by using 2 approach - using the Membership test by proving secret witness doesn't belong to self-reconstruct merkel-tree from holder's bases on issuer's provided data; another approach was using ZK-SNARK to prove holder's credential not contain within the accumulator (by using the idea of Flamini with some hashing as the mapping from Bls12-381 eliptic-curve to BN-256 curves's point - for smart-contract adaptability)
 
 For proving holder's attribute, we aiming leverage the idea of linear-size scaling bulletproof (in the future ones can using the log-size scaling bulletproof) to enhance the credential's proving issurance.
