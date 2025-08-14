@@ -8,6 +8,8 @@ use std::ops::Mul;
 use ark_ff::{Zero};
 use rand::Rng;
 use ark_ff::Field;
+use sha2::{Sha256, Digest};
+
 
 
 
@@ -89,7 +91,7 @@ pub fn linear_size_range_proof() {
     // Verifier Check The Prover Response
     let h_prime = get_h_prime(&h_vec, y);
 
-    // check that t^ = t(x) = t0 + t1 * x + t2 * x^2
+    // check that t^ = t(x) = return rhs == *lhst0 + t1 * x + t2 * x^2
     // g^(t^) = g^( t0 + t1 * x + t2 * x^2)
     // g^t0 * g^(t1 *x)  * g^(t2 * x^2)
 
@@ -265,40 +267,42 @@ fn log_size_range_proof(v: u64, n: usize) -> bool {
     let h_prime = get_h_prime(&h_vec, y);
 
     // base for IPA
-    let u = G1Projective::generator().mul(Fr::rand(&mut rng));
+    let u = G1Projective::rand(&mut rng);
 
-    // P as in the paper (additively written group)
-    let c = inner_product(&l_x, &r_x);
-    let P = commit(&g_vec, &l_x) 
-      + commit(&h_vec, &r_x) 
-      + u.mul(c);
-
+    // Adjusted P for IPA verification
+    let adjusted_P = A
+        + S.mul(x)
+        + commit(&g_vec, &minus_z)
+        + commit(&h_prime, &exp_yz)
+        - h.mul(mu)
+        + u.mul(t_hat);
 
     // -------------------------
     // 8. §5.2 Logarithmic-size Inner-Product Argument (folding)
     // -------------------------
     let mut g_cur = g_vec.clone();
-    let mut h_cur = h_vec.clone();
+    let mut h_cur = h_prime.clone();
     let mut a_cur = l_x.clone();
     let mut b_cur = r_x.clone();
     let mut xs: Vec<Fr> = Vec::new();
-
-    if(inner_prod_argument(
-        &mut g_cur,
-        &mut h_cur,
+    // Create a new Sha256 hasher
+    let mut transcript = Sha256::new();
+    if inner_prod_argument(
+        &g_cur,
+        &h_cur,
         &u,
-        &P,
-        &mut a_cur,
-        &mut b_cur,
+        &adjusted_P,
+        &a_cur,
+        &b_cur,
         n,
         &mut xs,
-        n,
-    )) {
+        &mut transcript
+    ) {
         println!("✅ Log-size range proof IPA succeeded");
         true
     } else {
         println!("❌ Log-size range proof IPA failed");
-        return false;
+        false
     }
 }
 
@@ -327,7 +331,7 @@ fn main() {
     // for the logic check section 4.2 in the paper
 
     let secret_number: u64 = 42;
-    let range_bits: usize = 64;
+    let range_bits: usize = 16;
     
     println!("--- From-Scratch Logarithmic-Sized Range Proof ---");
     println!(
@@ -336,10 +340,4 @@ fn main() {
     );
 
     let success = log_size_range_proof(secret_number, range_bits);
-
-    if success {
-        println!("\nProof generation and verification completed successfully.");
-    } else {
-        println!("\nProof generation or verification failed.");
-    }
 }   
