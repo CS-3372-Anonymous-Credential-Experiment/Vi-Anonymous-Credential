@@ -8,6 +8,7 @@ use std::ops::Mul;
 use ark_ff::{Zero};
 
 
+
 pub fn linear_size_range_proof() {
     // This bullet proof is proving the number 13 in range [0, 2^64 -1]
     // But this is not working with the logarithmic size reduction - only for purely linear increment in the size
@@ -19,14 +20,16 @@ pub fn linear_size_range_proof() {
     // Prover Side
     let v: u64 = 13; // the secret need to hide
     let n = 64; // the bit size
+    let n_count : usize = 64; // the bit size
     let ones = ones_vec::<Fr>(n);  // vector of 1's of length n
     // Select the h, g, h_vec, g_vec (the generator for pedersent commitment)
     let h = G1Projective::generator().mul(Fr::rand(&mut rng));
     let g = G1Projective::generator().mul(Fr::rand(&mut rng));
+    let u = G1Projective::generator().mul(Fr::rand(&mut rng)); // to use with bulletproof
     let label_g = "bullet-proof-g";
     let label_h = "bullet-proof-h";
-    let g_vec = derive_generators(label_g, n).unwrap();
-    let h_vec = derive_generators(label_h, n).unwrap();
+    let g_vec = derive_generators(label_g, n_count).unwrap();
+    let h_vec = derive_generators(label_h, n_count).unwrap();
     let gamma = Fr::rand(&mut rng);
     let alpha = Fr::rand(&mut rng);
 
@@ -135,50 +138,49 @@ pub fn linear_size_range_proof() {
     let lhs_t = t_x_computed;
     println!("If equals {:?}", rhs_t == lhs_t);
 
+    println!("Working with inner produc argument");
 
+    let mut x_list = Vec::<Fr>::new();
+    let mut list_l = Vec::<G1Projective>::new();
+    let mut list_r = Vec::<G1Projective>::new();
+    let P = commit(&g_vec, &lx) + commit(&h_vec, &rx) + u.mul(t_hat);
+    let (result_bool, list_L, list_R, s_list, x_list) = inner_prod_argument(
+        &g_vec,
+        &h_vec,
+        &u,
+        &P,
+        &lx,
+        &rx,
+        lx.len(),
+        &mut x_list,
+        lx.len(),
+        &mut list_l,
+        &mut list_r
+    );
 
-    // term = aL - 1^n - aR, element-wise
-    // let _term: Vec<Fr> = al.iter()
-    //     .zip(ones.iter())
-    //     .zip(ar.iter())
-    //     .map(|((&a_l_i, &one_i), &a_r_i)| a_l_i - one_i - a_r_i)
-    //     .collect();
+    // Check the correctness of the proof:
+    println!("The size of s {:?}", s_list.len());
+    println!("The size of l {:?}", lx.len());
+    println!("The size of r {:?}", rx.len());
+    println!("The size of x {:?}", x_list.len());
 
-    // let z_one_vec = vec![z; n];
-    // let z_square : Vec<Fr> = z_one_vec.iter()
-        // .zip(z_one_vec.iter())
-        // .map(|(&z_ones, &z_ones_2)| z_ones * z_ones_2)
-        // .collect();
-    // println!("{:?}",z_square );
-
-    // let z_square_v : Vec<Fr> = z_square.iter()
-        // .map(|&z_ones| z_ones * Fr::from(v))
-        // .collect();
-    // println!("{:?}",z_square_v );
-
-    // let delta = delta::<Fr>(y, z, n);
-    // let _z_square_v_delta : Vec<Fr> = z_square_v.iter()
-        // .map(|&z_ones| z_ones + delta)
-        // .collect();
-
-    // println!("{:?}", z_square_v_delta); == t_poly[0]
-    // println!("{:?}", t_poly[0]);
-    // let y_power = y_pows::<Fr>(y, n);
-    
-
+    println!("{:?}", x_list);
+    println!("THE RESULT of THE PROOF {:?}", result_bool);
     
 }
 
 
 fn main() {
-    let h = G1Projective::generator().mul(Fr::rand(&mut rng));
-    let g = G1Projective::generator().mul(Fr::rand(&mut rng));
-    let label_g = "bullet-proof-g";
-    let label_h = "bullet-proof-h";
-    let g_vec = derive_generators(label_g, n).unwrap();
-    let h_vec = derive_generators(label_h, n).unwrap();
+    // let h = G1Projective::generator().mul(Fr::rand(&mut rng));
+    // let g = G1Projective::generator().mul(Fr::rand(&mut rng));
+    // let label_g = "bullet-proof-g";
+    // let label_h = "bullet-proof-h";
+    // let g_vec = derive_generators(label_g, n).unwrap();
+    // let h_vec = derive_generators(label_h, n).unwrap();
 
-    // the bullet-proof of log-size is the enhancement of linear_size_range_proof (send less data + more ZKP)
-    // for the logic check section 4.2 in the paper
+    // // the bullet-proof of log-size is the enhancement of linear_size_range_proof (send less data + more ZKP)
+    // // for the logic check section 4.2 in the paper
+
+    linear_size_range_proof();
     
 }   

@@ -463,10 +463,12 @@ pub fn inner_prod_argument(
         current_n: usize, // Changed from Fr to usize for current size
         x_list : &mut Vec<Fr>,
         original_n: usize,      // Added to track original size
+        list_l : &mut Vec<G1Projective>,
+        list_r: &mut Vec<G1Projective>,
         // s_list = &Vec<Fr>
-    ) -> bool {
+    ) -> (bool, Vec<G1Projective>, Vec<G1Projective>, Vec<Fr>, Vec<Fr>)  { // condition, L, R, s_list, x_list
         if g_vec.len() != h_vec.len() {
-            return false;
+            (false, Vec::<G1Projective>::new(), Vec::<G1Projective>::new(), Vec::<Fr>::new(), Vec::<Fr>::new()); // Return false
         }
         if current_n == 1 {
             // P send V a, b
@@ -497,7 +499,7 @@ pub fn inner_prod_argument(
             
             let rhs = g.mul(a) + h.mul(b) + u.mul(c);
             let lhs = P;
-            return rhs == *lhs
+            return (rhs == *lhs, list_l.clone(), list_r.clone(), s_list, x_list.clone());
 
         }
         else {
@@ -518,6 +520,8 @@ pub fn inner_prod_argument(
             let L = pedersen_commit_with_two_vectors(&u, cl, &g_hi, &a_lo, &h_lo, &b_hi);
             let R = pedersen_commit_with_two_vectors(&u, cr, &g_lo, &a_hi, &h_hi, &b_lo);
 
+            list_l.push(L);
+            list_r.push(R);
             // P send to V: L, R
 
             // V send to P: x in Z_p /{0}
@@ -563,6 +567,8 @@ pub fn inner_prod_argument(
                 mid ,
                 x_list,
                 original_n,
+                list_l,
+                list_r
             )
 
         }   

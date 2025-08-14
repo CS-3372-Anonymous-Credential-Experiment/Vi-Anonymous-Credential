@@ -161,7 +161,7 @@ println!("James witness's {:?}", _james.get_cred().get_witness());
 println!();
 println!("Start prepare the ZKP for Carol");
 
-let (Cw, Csigma, Crho, Cx_point, x_times_sig, x_times_rho) = _carol.prepare_ZKP(_g, _h, _k, _z);
+let (Cw, Csigma, Crho, Cx_point, x_times_sig, x_times_rho, _, _) = _carol.prepare_ZKP(_g, _h, _k, _z);
 // println!("Carol Cw {:?}", Cw);
 // println!("Carol Csigma {:?}", Csigma);
 // println!("Carol Crho {:?}", Crho);

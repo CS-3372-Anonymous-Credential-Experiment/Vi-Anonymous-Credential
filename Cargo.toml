@@ -2,5 +2,5 @@
 members = [
     "accumulator_impl",
     "prover",
-    "verifier"
+    "BulletProof/bulletproof-bls12"
 ]

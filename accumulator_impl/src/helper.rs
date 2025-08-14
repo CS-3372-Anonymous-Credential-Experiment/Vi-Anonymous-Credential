@@ -17,6 +17,7 @@ use ark_std::One;
 use ark_std::Zero;
 use ark_ff::{Field};
 use ark_ff::BigInteger;
+use ark_bn254::Fr as FrBN;
 
 
 pub fn compute_pairing(
@@ -253,4 +254,19 @@ pub fn poseidon_hash_fq12_to_fr_via_fq(
     // Canonical bytes -> reduce mod r
     let bytes = h_fq.into_bigint().to_bytes_le();
     Fr::from_le_bytes_mod_order(&bytes)
+}
+
+pub fn map_bls_to_bn254(x_bls_bytes: &[u8]) -> FrBN {
+    let mut hasher = Sha256::new();
+    hasher.update(x_bls_bytes);
+    let hash_bytes = hasher.finalize();
+    let x_bn = FrBN::from_le_bytes_mod_order(&hash_bytes);
+    x_bn
+}
+
+
+pub fn fr_to_bytes(f: Fr) -> Vec<u8> {
+    let mut bytes = Vec::new();
+    f.serialize_uncompressed(&mut bytes).unwrap(); // serialize into canonical byte form
+    bytes
 }

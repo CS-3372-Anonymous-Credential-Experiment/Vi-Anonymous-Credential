@@ -8,6 +8,7 @@ use accumulator_impl::{holder::*, issuer::*, acc::*, helper::*};
 // ======================
 use ark_bls12_381::{Bls12_381, Fr, Fq, Fq2, Fq12, G1Projective, G2Projective};
 use ark_ec::CurveGroup;
+use ark_bn254::Bn254;
 use ark_ff::{Field, PrimeField, One};
 use ark_serialize::{CanonicalSerialize, Write};
 use ark_relations::r1cs::{ConstraintSynthesizer, ConstraintLayer};
@@ -46,7 +47,9 @@ use tracing_subscriber::prelude::*;
 // ======================
 use prover::circuit::CubeCircuit;
 use prover::CarolCircuit::CarolCircuit;
-
+use prover::export_proof::SnarkjsProof;
+use prover::export_proof::proof_to_snarkjs;
+use prover::export_proof::export_public_inputs_to_json_field;
 #[derive(Serialize, Debug, Deserialize)]
 struct CircuitInput {
     Cx_hash_words: [u32; 8],
@@ -81,10 +84,6 @@ fn parse_fr(s: &str) -> Fr {
     }
 
 
-
-fn test_main_1() {
-   
-}
 
 
 fn CubicTest() -> Result<(), Box<dyn std::error::Error>> {
@@ -214,7 +213,6 @@ fn main()  -> Result<(), Box<dyn std::error::Error>>{
                                 (1/ e(z,j))^{(sig + rho)} 
     */
 
-    
     let e_alpha_g2 = compute_pairing(_acc.get_alpha().into_affine(), _g2.into_affine());
     let e_cw_j     = compute_pairing(Cw.into_affine(), _j.into_affine());
     let e_cw_g2    = compute_pairing(Cw.into_affine(), _g2.into_affine());
@@ -264,6 +262,7 @@ fn main()  -> Result<(), Box<dyn std::error::Error>>{
         term_6_rhs_hash: constrain_6_rhs_hash_fr,
     };
 
+
     let public_inputs = vec![
         circuit.term_1_lhs_hash,
         circuit.term_1_rhs_hash,
@@ -278,6 +277,7 @@ fn main()  -> Result<(), Box<dyn std::error::Error>>{
         circuit.term_6_lhs_hash,
         circuit.term_6_rhs_hash,
     ];
+
     let rng = &mut OsRng;
     println!("Generating keys...");
     let (pk, vk) = Groth16::<Bls12_381>::setup(circuit.clone(), rng)?;
@@ -289,12 +289,76 @@ fn main()  -> Result<(), Box<dyn std::error::Error>>{
     
     let proof = Groth16::<Bls12_381>::prove(&pk, circuit, rng)?; // this broke
 
-    println!("The proof result {:?}", proof);
+    // println!("the proof key {:?}", &pk);
+    // println!("the verification key {:?}", &vk);
+    // println!("The proof result {:?}", proof);
     // println!("Run 2");
     //Prepare verifying key
     let pvk = prepare_verifying_key(&vk);
 
+    // println!("THE VERIFICATION {:?}", &vk);
     let is_valid = Groth16::<Bls12_381>::verify_proof(&pvk, &proof, &public_inputs)?;
+    
+
+    // let json_str = serde_json::to_string_pretty(&proof_json).unwrap();
+    // std::fs::write("proof.json", json_str).unwrap();
+
+
+    println!("Proof is valid? {}", is_valid);
+
+    let proof_js: SnarkjsProof = proof_to_snarkjs(&proof);
+
+
+    export_public_inputs_to_json_field(&public_inputs, "public_input-bls12-381.json");
+
+    // Working with hashing  from BLS-12-381 to BN-254
+    
+    let mut bn254_values = Vec::with_capacity(public_inputs.len());
+
+    // Loop over all BLS12-381 Fr values
+    for fr_val in public_inputs.iter() {
+        let bytes = fr_to_bytes(*fr_val);             // convert Fr -> Vec<u8>
+        let bn_val = map_bls_to_bn254(&bytes.as_slice()); // map bytes to BN254
+        bn254_values.push(bn_val);
+    }
+
+    // Now bn254_values contains all mapped BN254 elements in order
+    // println!("Mapped BN254 values: {:?}", bn254_values);
+    use prover::CarolCircuit::CarolCircuitBNS_254;
+    let circuit_254 = CarolCircuitBNS_254 {
+        term_1_lhs_hash: bn254_values[0],
+        term_1_rhs_hash: bn254_values[1],
+        term_2_lhs_hash: bn254_values[2],
+        term_2_rhs_hash: bn254_values[3],
+        term_3_lhs_hash: bn254_values[4],
+        term_3_rhs_hash: bn254_values[5],
+        term_4_lhs_hash: bn254_values[6],
+        term_4_rhs_hash: bn254_values[7],
+        term_5_lhs_hash: bn254_values[8],
+        term_5_rhs_hash: bn254_values[9],
+        term_6_lhs_hash: bn254_values[10],
+        term_6_rhs_hash: bn254_values[11],
+    };
+
+    let public_input_254 = bn254_values.clone();
+    // let rng = &mut OsRng;
+    println!("Generating keys... BN-254");
+    let (pk_254, vk_254) = Groth16::<Bn254>::setup(circuit_254.clone(), rng)?;
+    let proof = Groth16::<Bn254>::prove(&pk_254, circuit_254, rng)?; 
+    // println!("the proof key {:?}", &pk);
+    // println!("the verification key {:?}", &vk);
+    // println!("The proof result {:?}", proof);
+    // println!("Run 2");
+    //Prepare verifying key
+    let pvk_254 = prepare_verifying_key(&vk_254);
+
+    // println!("THE VERIFICATION {:?}", &vk);
+    let is_valid = Groth16::<Bn254>::verify_proof(&pvk_254, &proof, &public_input_254)?;
+    
+    export_public_inputs_to_json_field(&public_input_254, "public_input_254.json");
+
+    // let json_str = serde_json::to_string_pretty(&proof_json).unwrap();
+    // std::fs::write("proof.json", json_str).unwrap();
 
 
     println!("Proof is valid? {}", is_valid);
