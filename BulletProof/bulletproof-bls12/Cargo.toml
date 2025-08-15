@@ -15,5 +15,9 @@ sha2 = "0.10"            # hashing primitives
 # optional (highly recommended for fast MSM, if available)
 ark-msm = "=0.3.0-alpha.1"
 rand_core = "0.6"
-
-# (Pick exact versions from crates.io that match arkworks release.)
+bulletproofs-bls = "4.0.0"
+curve25519-dalek = "5.0.0-pre.0"
+bls12_381 = "0.4.0"
+subtle = "2.6.1"
+blstrs_plus = "0.8.18"
+ark-bn254 = "0.4.0"
