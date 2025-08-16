@@ -145,6 +145,59 @@ pub fn create_poseidon_config() -> PoseidonConfig<F> {
         capacity,
     }
 }
+
+pub fn create_poseidon_config_FrBN() -> PoseidonConfig<FrBN> {
+    let full_rounds = 8;
+    let partial_rounds = 57;
+    let alpha = 5;
+    let rate = 2;
+    let capacity = 1;
+    
+    // The state width
+    let state_size = rate + capacity; // usually 3 for example
+
+    // Dummy round constants: ark[round][state_index]
+    // For example, full_rounds + partial_rounds rounds total
+    let total_rounds = full_rounds + partial_rounds;
+
+    // Just fill with some dummy values like 1, 2, 3... cast to F
+    let mut ark = Vec::with_capacity(total_rounds);
+    for round in 0..total_rounds {
+        let mut round_constants = Vec::with_capacity(state_size);
+        for i in 0..state_size {
+            round_constants.push(FrBN::from((round * state_size + i) as u64 + 1));
+        }
+        ark.push(round_constants);
+    }
+
+    // Dummy MDS matrix: state_size x state_size, identity matrix here (not secure!)
+    let mut mds = Vec::with_capacity(state_size);
+    for i in 0..state_size {
+        let mut row = Vec::with_capacity(state_size);
+        for j in 0..state_size {
+            if i == j {
+                row.push(FrBN::one());
+            } else {
+                row.push(FrBN::zero());
+            }
+        }
+        mds.push(row);
+    }
+
+    PoseidonConfig {
+        full_rounds,
+        partial_rounds,
+        alpha,
+        ark,
+        mds,
+        rate,
+        capacity,
+    }
+}
+
+
+
+
 pub fn create_poseidon_config_fq() -> PoseidonConfig<Fq> {
     let full_rounds = 8;
     let partial_rounds = 57;
