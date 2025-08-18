@@ -8,14 +8,12 @@ use bbs_plus::setup::{SignatureParamsG1,KeypairG2};
 use rand::thread_rng;
 use std::ops::Mul;
 use ark_serialize::{CanonicalSerialize};
-use serde_json::json;
 use ark_sponge::{
     poseidon::{PoseidonSponge, PoseidonConfig},
     CryptographicSponge,
 };
 use ark_std::One;
 use ark_std::Zero;
-use ark_ff::{Field};
 use ark_ff::BigInteger;
 use ark_bn254::Fr as FrBN;
 
@@ -196,8 +194,6 @@ pub fn create_poseidon_config_FrBN() -> PoseidonConfig<FrBN> {
 }
 
 
-
-
 pub fn create_poseidon_config_fq() -> PoseidonConfig<Fq> {
     let full_rounds = 8;
     let partial_rounds = 57;
@@ -242,6 +238,7 @@ pub fn create_poseidon_config_fq() -> PoseidonConfig<Fq> {
         capacity,
     }
 }
+
 pub fn poseidon_hash_g1(g: &G1Projective, pos_config: &PoseidonConfig<Fr>) -> Fr {
     // Convert to affine to get x,y coordinates
     let g_affine = g.into_affine();
