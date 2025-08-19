@@ -3,7 +3,15 @@ use accumulator_impl::issuer::*;
 use accumulator_impl::acc::*;
 use accumulator_impl::helper::*;
 use ark_bls12_381::Fr;
+<<<<<<< HEAD
 
+=======
+use sha2::{Digest, Sha256}; 
+use ark_serialize::{CanonicalSerialize};
+use ark_ec::{CurveGroup};
+use serde_json::json;
+use std::ops::Mul;
+>>>>>>> origin/main
 fn main() {
 
 // Testing the test-case 1:
@@ -107,6 +115,17 @@ println!("The alpha with [Alice, Carol, James] {}", _alpha_3);
 let is_valid = _james.verify_mem(_g, _h, _pk, _param, _alpha_3, _g2, _j);
 println!("is valid {}", is_valid);
 
+<<<<<<< HEAD
+=======
+println!();
+println!("Alice witness's {:?}", _alice.get_cred().get_witness());
+println!("Carol witness's {:?}", _carol.get_cred().get_witness());
+println!("James witness's {:?}", _james.get_cred().get_witness());
+
+println!();
+
+
+>>>>>>> origin/main
 
 // Doing the Revocation Process
 
@@ -139,8 +158,90 @@ println!("Is James still valid {:?}", is_james_valid_new);
 println!("Is Carol still valid {:?}", is_carol_valid_new);
 
 
+<<<<<<< HEAD
 
 
 
+=======
+println!();
+println!("Alice witness's {:?}", _alice.get_cred().get_witness());
+println!("Carol witness's {:?}", _carol.get_cred().get_witness());
+println!("James witness's {:?}", _james.get_cred().get_witness());
+
+
+
+println!();
+println!("Start prepare the ZKP for Carol");
+
+let (Cw, Csigma, Crho, Cx_point, x_times_sig, x_times_rho, _, _) = _carol.prepare_ZKP(_g, _h, _k, _z);
+// println!("Carol Cw {:?}", Cw);
+// println!("Carol Csigma {:?}", Csigma);
+// println!("Carol Crho {:?}", Crho);
+// println!("Carol Cx_point {:?}", Cx_point);
+// println!("Carol x_times_sig {:?}", x_times_sig);
+// println!("Carol x_times_rho {:?}", x_times_rho);
+
+
+// Serialize w
+let _carol_w = _carol.get_cred().get_witness();
+let mut bytes_w = Vec::new();
+_carol_w.into_affine().serialize_uncompressed(&mut bytes_w).unwrap();
+let w_hash = Sha256::digest(&bytes_w);
+// println!("the w_hash {:?}", w_hash);
+
+
+let mut bytes_cw = Vec::new();
+Cw.into_affine().serialize_uncompressed(&mut bytes_cw).unwrap(); // byte array (needs ark-serialize trait)
+let Cw_hash = Sha256::digest(&bytes_cw);
+let cw_words = sha256_to_words(&Cw_hash);
+// println!("Carol Cw_hash {:?}", Cw_hash);
+
+let mut bytes_csig = Vec::new();
+Csigma.into_affine().serialize_uncompressed(&mut bytes_csig).unwrap(); // byte array (needs ark-serialize trait)
+let Csigma_hash = Sha256::digest(&bytes_csig);
+let csig_words = sha256_to_words(&Csigma_hash);
+// println!("Carol Csigma_hash {:?}", Csigma_hash);
+
+
+let mut bytes_crho = Vec::new();
+Crho.into_affine().serialize_uncompressed(&mut bytes_crho).unwrap(); // byte array (needs ark-serialize trait)
+let Crho_hash = Sha256::digest(&bytes_crho);
+let crho_words = sha256_to_words(&Crho_hash);
+// println!("Carol Crho_hash {:?}", Crho_hash);
+
+
+let mut bytes_cx = Vec::new();
+Cx_point.into_affine().serialize_uncompressed(&mut bytes_cx).unwrap(); // byte array (needs ark-serialize trait)
+let Cx_hash = Sha256::digest(&bytes_cx);
+let cx_words = sha256_to_words(&Cx_hash);
+// println!("Carol Cx_hash {:?}", Cx_hash);
+
+
+println!("Prepare the paring!");
+
+let e_z_j = compute_pairing(_z.into_affine(), _j.into_affine());
+let e_z_g2 = compute_pairing(_z.into_affine(), _g2.into_affine());
+let e_z_g2_x = e_z_g2.mul(_carol.get_cred().get_x_val());
+let e_alpha_g2 = compute_pairing(_acc.get_alpha().into_affine(), _g2.into_affine());
+// println!("The value of e_z_g2 {:?} ", e_z_g2);
+
+
+// let input = json!({
+//   // public: each hash as array of eight 32-bit integers
+//   "Cw_hash_words": cw_words,        // [u32, u32, ...] length 8
+//   "Csigma_hash_words": csigma_words,
+//   "Crho_hash_words": crho_words,
+//   "Cx_hash_words": cx_words,
+
+//   // private witness scalars (strings to ensure big ints handled)
+//   "x": _carol.get_cred().get_x_val().to_string(),
+//   "w": w.to_string(),
+//   "l": l.to_string(),
+//   "sigma": sigma.to_string(),
+//   "rho": rho.to_string(),
+//   "x_times_sig": x_times_sig.to_string(),
+//   "x_times_rho": x_times_rho.to_string()
+// });
+>>>>>>> origin/main
 
 }
