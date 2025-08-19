@@ -3,9 +3,18 @@ use ark_bls12_381::Fr;
 use ark_bls12_381::{G1Projective, G2Projective, Bls12_381};
 use bbs_plus::prelude::*;
 use crate::helper::*;
+<<<<<<< HEAD
 use rand::thread_rng;
 use ark_std::UniformRand;
 use std::ops::Mul;
+=======
+<<<<<<< HEAD
+=======
+use rand::thread_rng;
+use ark_std::UniformRand;
+use std::ops::Mul;
+>>>>>>> origin/main
+>>>>>>> main
 
 pub struct Holder {
     cred: Credential,
@@ -56,6 +65,12 @@ impl Holder {
     pub fn update_witness(&mut self, delta: Fr, new_alpha: G1Projective) {
         self.cred.update_witness(delta, new_alpha);
     }
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+}
+=======
+>>>>>>> main
 
 
     pub fn prepare_ZKP(&self, 
@@ -77,4 +92,9 @@ impl Holder {
 
         (Cw, Csigma, Crho, Cx_point, x_times_sig, x_times_rho, sigma, rho)
     }
+<<<<<<< HEAD
 }   
+=======
+}   
+>>>>>>> origin/main
+>>>>>>> main

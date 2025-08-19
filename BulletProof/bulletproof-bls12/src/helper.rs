@@ -1,3 +1,32 @@
+<<<<<<< HEAD
+extern crate bulletproofs_bls;
+use ark_ff::fields::PrimeField;
+use ark_ff::BigInteger;
+use ark_bn254::Fr as FrBN;
+use accumulator_impl::helper::*;
+use ark_sponge::{
+    poseidon::{PoseidonSponge},
+    CryptographicSponge,
+};
+
+use crate::inputData::InputData;
+
+use bulletproofs_bls::{RangeProof};
+use crate::MiMC::{MiMCParameters, mimc_sponge};
+
+use num_bigint::BigUint;
+use std::io::Cursor;
+use sha2::{Sha256, Digest};
+
+
+/*
+    This Function accept a Range-Proof, a nonce values, and the bytes of a BN-254 commitment values
+    Range proof (work on BLS-12-381 field) being convert to bytes than convert to BN-254 field elements
+    Nonce is a BN-254 elements
+    Commitment_Bytes was the bytes form of a BN-254 field element
+    Return: a BN-254 field element (a number)
+*/
+=======
 use bulletproofs_bls::{RangeProof};
 use ark_bn254::Fr as FrBN;
 use accumulator_impl::helper::*;
@@ -21,6 +50,7 @@ use std::fmt::Debug; // For unwrap_or_else debug output
 use ark_relations::r1cs::Namespace;
 use arkworks_gadgets::mimc::constraints::MiMCParametersVar;
 
+>>>>>>> main
 pub fn hash_range_nonce_poseidon(range_proof: &RangeProof, nonce: &FrBN, commitment_bytes: &Vec<u8>) -> FrBN {
     let poseidon_congfig = create_poseidon_config_FrBN();
     let mut sponge = PoseidonSponge::<FrBN>::new(&poseidon_congfig);
@@ -49,10 +79,13 @@ pub fn hash_range_nonce_poseidon(range_proof: &RangeProof, nonce: &FrBN, commitm
     // Map the commitment_bytes to BN_254 Fr then absorb
     let mapped_com_254 = map_bls_to_bn254(&commitment_bytes);
     sponge.absorb(&mapped_com_254);
+<<<<<<< HEAD
+=======
     // Absorb the comitment_bytes values
     // for cb in commitment_bytes.iter() {
     //     sponge.absorb(cb);
     // }
+>>>>>>> main
 
     // 4️⃣ Absorb the nonce
     sponge.absorb(nonce);
@@ -63,10 +96,23 @@ pub fn hash_range_nonce_poseidon(range_proof: &RangeProof, nonce: &FrBN, commitm
 
 }
 
+<<<<<<< HEAD
+
+/*
+    This function accept a BN-254 field elemetn to a Slice of bytes with 32 bytes long
+    Ensure the byte array is exactly 32 bytes long, padding with zeros if necessary.
+    This is crucial for consistent hashing with Circom's bit interpretation.
+    Spport for working with hash_range_nonce_SHA
+*/
+pub fn fr_to_le_bytes_32(fr_element: &FrBN) -> [u8; 32] {
+    let mut bytes = fr_element.into_bigint().to_bytes_le();
+    
+=======
 pub fn fr_to_le_bytes_32(fr_element: &FrBN) -> [u8; 32] {
     let mut bytes = fr_element.into_bigint().to_bytes_le();
     // Ensure the byte array is exactly 32 bytes long, padding with zeros if necessary.
     // This is crucial for consistent hashing with Circom's bit interpretation.
+>>>>>>> main
     bytes.resize(32, 0); 
     let mut fixed_bytes = [0u8; 32];
     fixed_bytes.copy_from_slice(&bytes[0..32]);
@@ -74,8 +120,18 @@ pub fn fr_to_le_bytes_32(fr_element: &FrBN) -> [u8; 32] {
 }
 
 
+<<<<<<< HEAD
+/*
+    Doing the SHA Hashing the Proof & nonce & Commitment_bytes
+    By accepting the range_proof, nonce, commitment_bytes
+
+*/
+pub fn hash_range_nonce_SHA(range_proof: &RangeProof, nonce: &FrBN, commitment_bytes: &Vec<u8>) -> FrBN {
+    let range_proof_bytes :Vec<u8> = range_proof.to_bytes();
+=======
 pub fn hash_range_nonce(range_proof: &RangeProof, nonce: &FrBN, commitment_bytes: &Vec<u8>) -> FrBN {
     let mut range_proof_bytes :Vec<u8> = range_proof.to_bytes();
+>>>>>>> main
 
     let mapped_com_254 = map_bls_to_bn254(&commitment_bytes);
     let mapped_com_254_bytes = fr_to_le_bytes_32(&mapped_com_254);
@@ -120,6 +176,11 @@ pub fn hash_range_nonce(range_proof: &RangeProof, nonce: &FrBN, commitment_bytes
 
 }
 
+<<<<<<< HEAD
+/*
+    Doing the MiMC hashing algorithm on the Proof & Nonce & Commitment_bytes
+*/
+=======
 pub struct MiMCParameters<F: PrimeField> {
     pub k: F,
     pub rounds: usize,
@@ -456,6 +517,7 @@ pub fn yeild_MiMCParameter (k: FrBN, num_inputs: usize, num_outputs : usize)  ->
     para
 }
 
+>>>>>>> main
 pub fn hash_range_nonce_mimc<F: PrimeField>(
     range_proof: &RangeProof,
     nonce: &F,
@@ -491,10 +553,14 @@ pub fn hash_range_nonce_mimc<F: PrimeField>(
     outputs[0]
 }
 
+<<<<<<< HEAD
+// Convert an Fr to decimal string (for JSON)
+=======
 
 
 
 /// Convert an Fr to decimal string (for JSON)
+>>>>>>> main
 pub fn fr_to_decimal_string(fr: &FrBN) -> String {
     // Step 1: Convert to BigInt (arkworks internal representation)
     let bigint = fr.into_bigint(); // BigInteger256
@@ -508,6 +574,10 @@ pub fn fr_to_decimal_string(fr: &FrBN) -> String {
     // Step 3: Interpret bytes as BigUint and get decimal string
     let dec_str =BigUint::from_bytes_le(&bytes_le).to_str_radix(10);
     
+<<<<<<< HEAD
+    let _big_uint = BigUint::parse_bytes(dec_str.as_bytes(), 10).unwrap();
+    
+=======
     let big_uint = BigUint::parse_bytes(dec_str.as_bytes(), 10).unwrap();
 
     // BigUint → bytes (LE) → BigInteger256 → Fr (for testing)
@@ -529,21 +599,31 @@ pub fn fr_to_decimal_string(fr: &FrBN) -> String {
     // println!("Recovered limbs: {:?}", limbs);
     // println!("Recovered Fr: {}", fr);
 
+>>>>>>> main
     dec_str
 
     
 }
 
+<<<<<<< HEAD
+// Convert a slice (vector) of BN-254 field to a Vector of string
+=======
 
 #[derive(Serialize)]
 struct InputData {
     fr_elements: Vec<String>, // Store as decimal strings
 }
 
+>>>>>>> main
 pub fn fr_vec_to_decimal_array(frs: &[FrBN]) -> Vec<String> {
     frs.iter().map(fr_to_decimal_string).collect()
 }
 
+<<<<<<< HEAD
+
+// Convert a Field Element Vector to a json-string
+=======
+>>>>>>> main
 pub fn fr_vec_to_json(fr_vec: Vec<FrBN>) -> String {
     let serializable = InputData {
         fr_elements: fr_vec
@@ -553,4 +633,9 @@ pub fn fr_vec_to_json(fr_vec: Vec<FrBN>) -> String {
     };
 
     serde_json::to_string_pretty(&serializable).unwrap()
+<<<<<<< HEAD
 }
+
+=======
+}
+>>>>>>> main
