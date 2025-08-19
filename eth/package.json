@@ -1,0 +1,50 @@
+{
+  "name": "eth-zkp-system",
+  "version": "1.0.0",
+  "description": "ZKP and Smart Contract system using zk-SNARKs with BLS12-381",
+  "main": "index.js",
+  "scripts": {
+    "compile": "circom circuits/main.circom --r1cs --wasm --sym --c",
+    "setup": "snarkjs groth16 setup circuits/main.r1cs pot12_final.ptau circuits/main_0000.zkey",
+    "contribute": "snarkjs zkey contribute circuits/main_0000.zkey circuits/main_final.zkey",
+    "export-verifier": "snarkjs zkey export verificationkey circuits/main_final.zkey circuits/verification_key.json",
+    "generate-proof": "node scripts/generate-proof.js",
+    "verify-proof": "node scripts/verify-proof.js",
+    "deploy-contract": "node scripts/deploy-contract.js",
+    "test": "mocha test/**/*.test.js",
+    "lambda-build": "webpack --config webpack.lambda.config.js"
+  },
+  "dependencies": {
+    "circom": "^2.1.6",
+    "snarkjs": "^0.7.0",
+    "ffjavascript": "^0.2.29",
+    "blake2b": "^2.1.4",
+    "ethers": "^6.8.1",
+    "web3": "^4.2.2",
+    "axios": "^1.6.0",
+    "crypto": "^1.0.1",
+    "elliptic": "^6.5.4",
+    "big-integer": "^1.6.51",
+    "bls12-381": "^0.1.0",
+    "poseidon-hash": "^1.0.0"
+  },
+  "devDependencies": {
+    "mocha": "^10.2.0",
+    "chai": "^4.3.10",
+    "webpack": "^5.89.0",
+    "webpack-cli": "^5.1.4",
+    "hardhat": "^2.17.0",
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "solidity-coverage": "^0.8.5"
+  },
+  "keywords": [
+    "zkp",
+    "zk-snark",
+    "bls12-381",
+    "ethereum",
+    "smart-contracts",
+    "lambda"
+  ],
+  "author": "ZKP System",
+  "license": "MIT"
+}

@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  ethereum-node:
+    build: .
+    container_name: research-ethereum
+    ports:
+      - "8545:8545"   # HTTP RPC for Lambda
+      - "8546:8546"   # WebSocket RPC for Lambda
+    volumes:
+      - ethereum_data:/eth/data
+      - ./logs:/eth/logs
+    environment:
+      - ETHEREUM_NETWORK=research
+    networks:
+      - ethereum_network
+    restart: unless-stopped
+    entrypoint: ["/bin/bash", "/eth/scripts/start.sh"]
+
+  # Optional: Add a block explorer for easier debugging
+  blockscout:
+    image: blockscout/blockscout:latest
+    container_name: research-blockscout
+    ports:
+      - "4000:4000"
+    environment:
+      - ETHEREUM_JSONRPC_VARIANT=geth
+      - ETHEREUM_JSONRPC_HTTP_URL=http://ethereum-node:8545
+      - ETHEREUM_JSONRPC_WS_URL=ws://ethereum-node:8546
+      - DATABASE_URL=postgresql://postgres:password@db:5432/blockscout
+      - SECRET_KEY_BASE=56NtB48ear7+wMSf0IQuWDAAazhpb31qyc7GiyspBP2vh7t5zlCsF5QDv76chXeN
+      - CHAIN_ID=1337
+      - SUBNETWORK=Research Ethereum
+      - LOGO=/images/blockscout_logo.svg
+      - LOGO_FOOTER=/images/blockscout_logo.svg
+    depends_on:
+      - ethereum-node
+      - db
+    networks:
+      - ethereum_network
+    profiles:
+      - explorer
+
+  # Database for block explorer
+  db:
+    image: postgres:13
+    container_name: research-postgres
+    environment:
+      - POSTGRES_DB=blockscout
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - ethereum_network
+    profiles:
+      - explorer
+
+volumes:
+  ethereum_data:
+  postgres_data:
+
+networks:
+  ethereum_network:
+    driver: bridge
