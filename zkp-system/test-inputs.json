@@ -1,9 +1,0 @@
-{
-  "secret": "123456789",
-  "salt": "987654321",
-  "amount": "100",
-  "recipient": "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6",
-  "publicInput": "0",
-  "commitment": "0",
-  "nullifier": "0"
-}
