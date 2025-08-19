@@ -1,6 +1,15 @@
 use ark_ff::fields::PrimeField;
+<<<<<<< HEAD
 use ark_bls12_381::Fr as F;
 use ark_bls12_381::{Bls12_381, G1Affine, G2Affine, G1Projective, G2Projective, Fr, Fq2, Fq12, Fq};
+=======
+<<<<<<< HEAD
+use ark_bls12_381::{Bls12_381, G1Affine, G2Affine, G1Projective, G2Projective, Fr};
+=======
+use ark_bls12_381::Fr as F;
+use ark_bls12_381::{Bls12_381, G1Affine, G2Affine, G1Projective, G2Projective, Fr, Fq2, Fq12, Fq};
+>>>>>>> origin/main
+>>>>>>> main
 use ark_ec::pairing::{Pairing, PairingOutput};
 use ark_ec::{CurveGroup};
 use sha2::{Digest, Sha256}; // to map commitment -> Fr
@@ -8,6 +17,11 @@ use bbs_plus::setup::{SignatureParamsG1,KeypairG2};
 use rand::thread_rng;
 use std::ops::Mul;
 use ark_serialize::{CanonicalSerialize};
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+=======
+>>>>>>> main
 use ark_sponge::{
     poseidon::{PoseidonSponge, PoseidonConfig},
     CryptographicSponge,
@@ -17,6 +31,10 @@ use ark_std::Zero;
 use ark_ff::BigInteger;
 use ark_bn254::Fr as FrBN;
 
+<<<<<<< HEAD
+=======
+>>>>>>> origin/main
+>>>>>>> main
 
 pub fn compute_pairing(
     z: G1Affine,
@@ -82,6 +100,11 @@ pub fn print_type_of<T>(_: &T) {
     println!("{}", std::any::type_name::<T>());
 }
 
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+=======
+>>>>>>> main
 pub fn sha256_to_words(digest: &[u8]) -> [u32; 8] {
     assert_eq!(digest.len(), 32);
     let mut out = [0u32; 8];
@@ -319,4 +342,9 @@ pub fn fr_to_bytes(f: Fr) -> Vec<u8> {
     let mut bytes = Vec::new();
     f.serialize_uncompressed(&mut bytes).unwrap(); // serialize into canonical byte form
     bytes
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> origin/main
+>>>>>>> main

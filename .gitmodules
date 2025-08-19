@@ -1,9 +1,6 @@
 [submodule "CS3372_Accumulator_Lamdas"]
 	path = CS3372_Accumulator_Lamdas
 	url = https://github.com/NgDinhKhiem/CS3372_Accumulator_Lamdas.git
-[submodule "src/Accumulator/Accumulator_CA/CS3372_Accumulator_Lamdas"]
-	path = src/Accumulator/Accumulator_CA/CS3372_Accumulator_Lamdas
-	url = https://github.com/NgDinhKhiem/CS3372_Accumulator_Lamdas.git
 [submodule "VDR-for-CS3372"]
 	path = VDR-for-CS3372
 	url = https://github.com/Pluck3dEye/VDR-for-CS3372.git

@@ -3,11 +3,21 @@ use accumulator_impl::issuer::*;
 use accumulator_impl::acc::*;
 use accumulator_impl::helper::*;
 use ark_bls12_381::Fr;
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+
+=======
+>>>>>>> main
 use sha2::{Digest, Sha256}; 
 use ark_serialize::{CanonicalSerialize};
 use ark_ec::{CurveGroup};
 use serde_json::json;
 use std::ops::Mul;
+<<<<<<< HEAD
+=======
+>>>>>>> origin/main
+>>>>>>> main
 fn main() {
 
 // Testing the test-case 1:
@@ -111,6 +121,11 @@ println!("The alpha with [Alice, Carol, James] {}", _alpha_3);
 let is_valid = _james.verify_mem(_g, _h, _pk, _param, _alpha_3, _g2, _j);
 println!("is valid {}", is_valid);
 
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+=======
+>>>>>>> main
 println!();
 println!("Alice witness's {:?}", _alice.get_cred().get_witness());
 println!("Carol witness's {:?}", _carol.get_cred().get_witness());
@@ -119,6 +134,10 @@ println!("James witness's {:?}", _james.get_cred().get_witness());
 println!();
 
 
+<<<<<<< HEAD
+=======
+>>>>>>> origin/main
+>>>>>>> main
 
 // Doing the Revocation Process
 
@@ -151,6 +170,7 @@ println!("Is James still valid {:?}", is_james_valid_new);
 println!("Is Carol still valid {:?}", is_carol_valid_new);
 
 
+<<<<<<< HEAD
 println!();
 println!("Alice witness's {:?}", _alice.get_cred().get_witness());
 println!("Carol witness's {:?}", _carol.get_cred().get_witness());
@@ -158,6 +178,20 @@ println!("James witness's {:?}", _james.get_cred().get_witness());
 
 
 
+=======
+<<<<<<< HEAD
+
+
+
+=======
+println!();
+println!("Alice witness's {:?}", _alice.get_cred().get_witness());
+println!("Carol witness's {:?}", _carol.get_cred().get_witness());
+println!("James witness's {:?}", _james.get_cred().get_witness());
+
+
+
+>>>>>>> main
 println!();
 println!("Start prepare the ZKP for Carol");
 
@@ -230,5 +264,9 @@ let e_alpha_g2 = compute_pairing(_acc.get_alpha().into_affine(), _g2.into_affine
 //   "x_times_sig": x_times_sig.to_string(),
 //   "x_times_rho": x_times_rho.to_string()
 // });
+<<<<<<< HEAD
+=======
+>>>>>>> origin/main
+>>>>>>> main
 
 }
